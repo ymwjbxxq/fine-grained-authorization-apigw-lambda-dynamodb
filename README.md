@@ -129,10 +129,10 @@ https://{route_53_record}/one/
 ## Cleanup
 
 You can run either:
-"`bash
+```
 make delete
 ```
 Or:
-"`bash
+```
 aws cloudformation delete-stack --stack-name STACK_NAME
 ```
