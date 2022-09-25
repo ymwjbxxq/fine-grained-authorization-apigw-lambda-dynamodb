@@ -2,7 +2,7 @@
 
 Imagine a customer-facing application where users will log into your web or mobile application. As such, you will expose your APIs through API Gateway with upstream services. For instance, the user should be allowed to make a GET request to an endpoint but should not be allowed to make a POST request to the same endpoint. As a best practice, you should assign users fine scopes to allow or deny access to your API services.
 
-Let's go through the request flow to understand what happens at each step, as shown in Figure 1:
+Let's go through the request flow to understand what happens at each step, as shown in the figure (TODO):
 
 1. A user logs into the  Identity and access management and acquires a JWT ID token, access token etc.
 2. A RestAPI request is made, and a bearer token—in this solution, an access token—is passed in the headers.
