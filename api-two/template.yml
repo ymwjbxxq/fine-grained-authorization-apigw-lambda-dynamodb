@@ -1,0 +1,231 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+##########################################################################
+#  Parameters                                                            #
+##########################################################################
+Parameters:
+  StageName:
+    Description: The name of the stage is the first path segment in the Uniform Resource Identifier (URI) of a call to API Gateway
+    Type: String
+  TableName:
+    Description: The name of the table name
+    Type: String
+  JwtArn:
+    Description: The arn of the jwt lambda
+    Type: String
+
+##########################################################################
+#  Global values that are applied to all resources                       #
+##########################################################################
+Globals:
+  Function:
+    MemorySize: 256
+    Architectures: ["arm64"]
+    Handler: bootstrap
+    Runtime: provided.al2
+    Timeout: 29
+    Environment:
+      Variables:
+        RUST_BACKTRACE: 1
+        RUST_LOG: info
+
+Resources:
+##########################################################################
+#  API Gateway CloudWatch Role                                           #
+##########################################################################
+  CloudWatchRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-${AWS::Region}-${StageName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - >-
+          arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+  ApiGwAccount:
+    Type: 'AWS::ApiGateway::Account'
+    Properties:
+      CloudWatchRoleArn: !GetAtt CloudWatchRole.Arn
+##########################################################################
+#  API Gateway REST API                                                  #
+##########################################################################
+  MyApi:
+    Type: AWS::Serverless::Api
+    DependsOn:
+      - AccessLogs
+    Properties:
+      OpenApiVersion: 3.0.3
+      Cors:
+        AllowMethods: "'GET, POST, OPTIONS, PATCH, PUT, DELETE'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Access-Control-Allow-Headers,Access-Control-Request-Method,Access-Control-Request-Headers'"
+        AllowOrigin: "'*'"
+      AccessLogSetting:
+        DestinationArn: !GetAtt AccessLogs.Arn
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","routeKey":"$context.routeKey", "status":"$context.status","protocol":"$context.protocol", "integrationStatus": $context.integrationStatus, "integrationLatency": $context.integrationLatency, "responseLength":"$context.responseLength" }'
+      StageName: !Ref StageName
+      Description: An Amazon private REST API Gateway and an AWS Lambda function.
+      DisableExecuteApiEndpoint: true
+      Auth:
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          jwt:
+            FunctionArn: !Ref JwtArn
+            FunctionPayloadType: REQUEST
+            Identity:
+              Headers:
+                - Authorization
+            JwtConfiguration:
+              issuer: TODO
+              audience: TODO
+        DefaultAuthorizer: jwt
+        ResourcePolicy:
+          CustomStatements: [{
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "execute-api:Invoke",
+            "Resource": "execute-api:/*/*/*"
+          }]
+      # Models:
+      #   GetModel:
+      #     type: object
+      #     required:
+      #       - something
+      #     properties:
+      #       something: 
+      #         type: string
+      Tags:
+        Name: my-api
+        env: !Ref StageName
+
+  AccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Sub "/${AWS::StackName}/${AWS::Region}-accessLogs"
+
+##########################################################################
+#   GatewayResponse                                                      #
+##########################################################################
+  GatewayResponse400:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+      ResponseTemplates:
+        application/json: '{
+          "errors": [
+            $context.error.messageString
+          ]
+        }'
+      ResponseType: BAD_REQUEST_BODY
+      RestApiId: !Ref MyApi
+      StatusCode: 400
+
+  GatewayResponse4XX:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+      ResponseTemplates:
+        application/json: '{
+          "errors": [
+            $context.error.messageString
+          ]
+        }'
+      ResponseType: DEFAULT_4XX
+      RestApiId: !Ref MyApi
+
+  GatewayResponseACCESSDENIED:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+      ResponseType: ACCESS_DENIED
+      RestApiId: !Ref MyApi
+      StatusCode: 403
+
+  GatewayResponseUNAUTHORIZED:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+      ResponseType: UNAUTHORIZED
+      RestApiId: !Ref MyApi
+      StatusCode: 401
+
+
+##########################################################################
+# GET Lambda Function                                                    #
+##########################################################################
+  GetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build/handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      #   - Version: "2012-10-17"
+      #     Statement:
+      #       - Effect: Allow
+      #         Action: 
+      #           - dynamodb:GetItem
+      #         Resource: 
+      #           - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}
+      # Environment:
+      #   Variables:
+      #     TABLE_NAME: !Sub ${TableName}
+      Events:
+        ApiEvents:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref MyApi
+            Auth:
+              Authorizer: jwt
+            # RequestModel:
+            #   Model: GetModel
+            #   Required: true
+            #   ValidateParameters: true
+            # RequestParameters:
+            #   - method.request.querystring.something:
+            #       Required: true
+      Tags:
+        Name: my-handler
+        env: !Ref StageName
+  
+  GetFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetFunction}"
+      RetentionInDays: 7
+
+Outputs:
+  HttpApiEndpoint:
+    Description: The ui endpoint.
+    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiEndpoint
+  HttpApiDomainName:
+    Description: The domain name of the endpoint.
+    Value: !Sub "${MyApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub ${AWS::StackName}-DomainName
+  ApiId:
+    Description: Api id of REST API
+    Value:
+      Ref: MyApi
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiId

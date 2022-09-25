@@ -1,0 +1,18 @@
+[package]
+name = "shared"
+version.workspace = true
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aws-config.workspace = true
+aws-sdk-dynamodb.workspace = true
+lambda_http.workspace = true
+aws-smithy-client.workspace = true
+aws-smithy-http.workspace = true
+http.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+jsonwebtoken.workspace = true
+reqwest.workspace = true

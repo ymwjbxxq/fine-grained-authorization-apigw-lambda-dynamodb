@@ -1,0 +1,33 @@
+[workspace]
+members = [
+    "shared",
+    "jwt",
+    "api-one",
+    "api-two"
+]
+
+[workspace.package]
+version = "0.1.0"
+
+[workspace.dependencies]
+aws_lambda_events = "0.7.0"
+aws-config = "0.49.0"
+aws-sdk-dynamodb = "0.19.0"
+aws-smithy-types = "0.49.0"
+aws-smithy-http = "0.49.0"
+futures = "0.3.17"
+lambda_http = "0.6.0"
+lambda_runtime = "0.6.0"
+serde_json = "1.0.68"
+serde = {version = "1.0", features = ["derive"] }
+tokio = "1.13.0"
+async-trait = "0.1.51"
+tracing-subscriber = { version = "0.3", features = ["fmt", "json"] }
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
+http = "0.2.6"
+typed-builder = "0.10.0"
+jsonwebtoken = "8.1.0"
+fastrand = "1.7.0"
+aws-smithy-client = { version = "0.49.0", features = ["test-util"] }
+mockall = "0.11.0"
+mockito = "0.31.0"

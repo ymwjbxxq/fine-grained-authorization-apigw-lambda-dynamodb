@@ -1,0 +1,40 @@
+[package]
+name = "lambda_request_authorizer"
+version.workspace = true
+edition = "2021"
+
+# AUTHORIZER
+[[bin]]
+name = "jwt"
+path = "src/bin/jwt.rs"
+
+[dependencies]
+shared = { path = "../shared" }
+aws_lambda_events.workspace = true
+aws-config.workspace = true
+aws-sdk-dynamodb.workspace = true
+lambda_runtime.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+aws-smithy-client.workspace = true
+aws-smithy-types.workspace = true
+http.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+typed-builder.workspace = true
+reqwest.workspace = true
+jsonwebtoken.workspace = true
+
+[dev-dependencies]
+lambda_http.workspace = true
+aws-smithy-http.workspace = true
+mockall.workspace = true
+mockito.workspace = true
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+opt-level = "z"  # Optimize for size.
+lto = "thin" # This is similar to "fat", but takes substantially less time to run while still achieving performance gains similar to "fat".
+codegen-units = 1  # Reduce parallel code generation units
+panic = "abort"

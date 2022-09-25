@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+##########################################################################
+#  Parameters                                                            #
+##########################################################################
+Parameters:
+  StageName:
+    Description: The name of the stage is the first path segment in the Uniform Resource Identifier (URI) of a call to API Gateway
+    Type: String
+    Default: test
+  ScopeTableName:
+    Description: The name of the global table name scope
+    Type: String
+  Audience:
+    Type: String
+  Issuer:
+    Type: String
+  JsksUrl:
+    Type: String
+
+##########################################################################
+#  Global values that are applied to all resources                       #
+##########################################################################
+Globals:
+  Function:
+    MemorySize: 256
+    Architectures: ["arm64"]
+    Handler: bootstrap
+    Runtime: provided.al2
+    Timeout: 29
+    Environment:
+      Variables:
+        RUST_BACKTRACE: 1
+        RUST_LOG: info
+
+Resources:
+##########################################################################
+#   Jwt Lambda Functions                                                 #
+##########################################################################
+  JwtAuthorizerLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+      LogGroupName: !Sub "/aws/lambda/${JwtAuthorizerFunction}"
+
+  JwtAuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build/jwt
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: 
+                - dynamodb:GetItem
+              Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ScopeTableName}
+      Environment:
+        Variables:
+          SCOPE_TABLE_NAME: !Sub ${ScopeTableName}
+          AUDIENCE: !Ref Audience
+          TOKEN_ISSUER: !Ref Issuer
+          JSKS_URI: !Ref JsksUrl
+      Tags:
+        Name: jwt
+        env: !Ref StageName
+
+
+Outputs:
+  JwtAuthorizerFunctionArn:
+    Value: !GetAtt JwtAuthorizerFunction.Arn
+    Description: JwtAuthorizerFunction ARN
+    Export:
+      Name: !Sub ${AWS::StackName}-JwtArn
