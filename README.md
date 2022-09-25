@@ -36,11 +36,16 @@ We should have a DynamoDB table made of scopes. For example:
  ```
 ## Project structure
 
-workspace
--- API 1
--- API 2
--- Shared code
--- LambdaRequestAuthorizer
+ ``` 
+.
+├── API 1 (api-one)/
+├── API 2 (api-two)/
+├── Shared code (shared)/
+├── LambdaRequestAuthorizer (jwt)/
+└── cargo.toml
+
+ ``` 
+
 
 ## Unit-tests
 
