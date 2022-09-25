@@ -1,7 +1,5 @@
 # Building fine-grained authorization using any Identity and access management with API Gateway
 
-## The idea behind
-
 Imagine a customer-facing application where users will log into your web or mobile application. As such, you will expose your APIs through API Gateway with upstream services. For instance, the user should be allowed to make a GET request to an endpoint but should not be allowed to make a POST request to the same endpoint. As a best practice, you should assign users fine scopes to allow or deny access to your API services.
 
 Let's go through the request flow to understand what happens at each step, as shown in Figure 1:
@@ -45,7 +43,6 @@ We should have a DynamoDB table made of scopes. For example:
 └── cargo.toml
 
  ``` 
-
 
 ## Unit-tests
 
@@ -127,7 +124,7 @@ Once deployed, you should have:
 3. Create a Route 53 alias record that routes traffic to the custom domain
 
 Call the custom domain, passing your JWT token in the Authorization header if everything is in place.
-https://{your_custom_domain_url}/one/
+https://{route_53_record}/one/
 
 ## Cleanup
 
