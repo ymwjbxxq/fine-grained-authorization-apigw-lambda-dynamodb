@@ -81,6 +81,9 @@ Resources:
             FunctionArn: !Ref JwtArn
             FunctionPayloadType: REQUEST
             Identity:
+              Context:
+                - httpMethod
+                - resourceId
               Headers:
                 - Authorization
             JwtConfiguration:
