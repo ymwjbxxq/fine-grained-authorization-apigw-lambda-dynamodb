@@ -32,6 +32,57 @@ We should have a DynamoDB table made of scopes. For example:
  ]
 }
  ```
+ 
+## Alternative
+
+As usual, there are many articles with one of the best from Alex Brie: https://www.alexdebrie.com/posts/lambda-custom-authorizers/#caching-across-multiple-functions.
+
+The key is flexibility. I could return the policy from DynamoDB.
+
+```
+//read-only
+{
+	"principalId": "my-username",
+	"policyDocument": {
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Action": "execute-api:Invoke",
+				"Effect": "Allow",
+				"Resource": [
+				  "arn:aws:execute-api:us-east-1:123456789012:qsxrty/test/GET/",
+				  "arn:aws:execute-api:us-east-1:123456789012:qsxrty/test/GET/list"
+		]
+	}
+}
+
+//write only
+{
+	"principalId": "my-username",
+	"policyDocument": {
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Action": "execute-api:Invoke",
+				"Effect": "Allow",
+				"Resource": [
+				  "arn:aws:execute-api:us-east-1:123456789012:qsxrty/test/POST/",
+				  "arn:aws:execute-api:us-east-1:123456789012:qsxrty/test/PATCH/"
+      "arn:aws:execute-api:us-east-1:123456789012:qsxrty/test/PUT/"
+		]
+	}
+}
+```
+
+Or I can build up something completely custom like in this example. It all depends.
+
+In theory, if you have an API with different verbs:
+- GET / 
+- POST / 
+- PATCH / 
+
+I could support multiple roles per user.
+ 
 ## Project structure
 
  ``` 
